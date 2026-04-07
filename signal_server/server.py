@@ -439,12 +439,6 @@ async def handler(websocket):
                     "data": {"groups": get_groups_list()}
                 })
 
-            elif msg_type == "chat_relay":
-                await websocket.send(json.dumps({
-                    "type": "error",
-                    "message": "P2P 未连接，无法发送消息"
-                }))
-
     except Exception as e:
         logger.warning(f"连接异常: {username} - {e}")
     finally:
