@@ -1,0 +1,70 @@
+# P2P Chat 客户端配置文件
+# Client Configuration
+
+# 客户端设置
+client:
+  # 本地 Web 服务监听地址和端口
+  host: "0.0.0.0"
+  port: 8000
+  
+  # 信令服务器连接地址
+  # 格式: ws://[服务器IP或域名]:[端口]
+  signal_server: "ws://localhost:5010"
+  
+  # 数据存储配置
+  storage:
+    # 本地数据存储根目录
+    base_path: "data"
+    # 用户名最大长度限制
+    max_username_length: 100
+  
+  # P2P WebRTC 连接配置
+  p2p:
+    # STUN 服务器列表（用于 NAT 穿透）
+    stun_servers:
+      - "stun:stun.l.google.com:19302"
+      - "stun:stun1.l.google.com:19302"
+    
+    # ICE 候选收集超时时间（秒）
+    # 超时后即使未完全收集也会发送 Offer/Answer
+    ice_gathering_timeout: 5.0
+    
+    # 用户在线检查超时时间（秒）
+    check_user_timeout: 5.0
+  
+  # 日志配置
+  log_level: "INFO"  # 可选值: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_format: "%(asctime)s [%(levelname)s] %(message)s"
+  
+  # 用户设置默认值
+  user_settings:
+    # 主题: "auto" (跟随系统), "light" (浅色), "dark" (深色)
+    theme: "auto"
+    # 启用桌面通知
+    notifications: true
+    # 启用通知声音
+    notification_sound: true
+    # 默认隐身模式
+    default_incognito: false
+    # 隐身模式超时时间（分钟）
+    incognito_timeout: 10
+    # 连接超时时间（秒）
+    connect_timeout: 30
+
+# 使用说明：
+# 1. 修改 signal_server 为实际的信令服务器地址
+#    本地测试: ws://localhost:5010
+#    远程服务器: ws://your-server-ip:5010
+#
+# 2. 修改 port 以避免端口冲突（如需运行多个客户端实例）
+#
+# 3. 添加更多 STUN 服务器以提高 NAT 穿透成功率
+#    其他公共 STUN 服务器:
+#    - stun:stun2.l.google.com:19302
+#    - stun:stun3.l.google.com:19302
+#    - stun:stun4.l.google.com:19302
+#
+# 4. 调整超时时间以适应网络环境
+#    网络较差时增加超时时间
+#
+# 5. 修改 log_level 为 DEBUG 以获取更详细的日志信息

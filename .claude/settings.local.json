@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(python -W ignore -c \"import asyncio,json,websockets; asyncio.run\\(websockets.connect\\('ws://localhost:5010'\\).__aenter__\\(\\)\\)\")",
+      "Bash(python -W ignore signal_server/server.py)",
+      "Bash(python -W ignore -c ':*)",
+      "Bash(kill %1)",
+      "Bash(python -W ignore -c \"import asyncio,json,websockets; asyncio.run\\(\\(lambda: websockets.connect\\('ws://localhost:5010'\\)\\)\\(\\).__aenter__\\(\\)\\)\")",
+      "Bash(python test_group.py)"
+    ]
+  }
+}

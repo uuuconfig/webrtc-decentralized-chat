@@ -1,0 +1,31 @@
+# P2P Chat 信令服务器配置文件
+# Signal Server Configuration
+
+# 信令服务器设置
+signal_server:
+  # WebSocket 信令服务监听地址和端口
+  signal_host: "0.0.0.0"
+  signal_port: 5010
+  
+  # HTTP WebUI 仪表板监听地址和端口
+  http_host: "0.0.0.0"
+  http_port: 5011
+  
+  # 日志配置
+  log_level: "INFO"  # 可选值: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_format: "%(asctime)s [%(levelname)s] %(message)s"
+  
+  # 统计数据缓冲区配置
+  stats:
+    # 连接时间样本缓冲区大小（用于计算平均连接时间）
+    connection_times_maxlen: 100
+    # 消息时间戳缓冲区大小（用于计算消息吞吐量）
+    message_timestamps_maxlen: 60
+    # 日志缓冲区大小（WebUI 显示最近的日志）
+    log_buffer_maxlen: 100
+
+# 使用说明：
+# 1. 修改 signal_host 为 "0.0.0.0" 以接受外部连接
+# 2. 修改 signal_port 和 http_port 以避免端口冲突
+# 3. 调整 log_level 为 DEBUG 以获取更详细的日志信息
+# 4. 增加 *_maxlen 值以保留更多历史数据（会占用更多内存）

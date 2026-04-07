@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Chat</title>
+    <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+    <div id="app">
+        <!-- 登录界面 -->
+        <div id="login-view" class="view active">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <h1>P2P Chat</h1>
+                    <p class="subtitle">去中心化点对点聊天</p>
+                </div>
+                <div class="status-bar" id="signal-status">
+                    <span class="status-dot disconnected"></span>
+                    <span>连接信令服务器中...</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="username-input" class="input-field" placeholder="输入你的昵称" maxlength="20" autocomplete="off">
+                    <button id="login-btn" class="btn-primary" disabled>加入聊天</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div id="main-view" class="view">
+            <div class="main-container">
+                <!-- 左侧菜单栏 -->
+                <nav class="menu-bar">
+                    <div class="menu-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="menu-items">
+                        <button class="menu-item active" data-menu="chat" title="单对单聊天">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                        <button class="menu-item" data-menu="group" title="群聊">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </button>
+                        <button class="menu-item" data-menu="settings" title="设置">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="menu-user">
+                        <div class="avatar" id="menu-avatar">U</div>
+                    </div>
+                </nav>
+
+                <!-- 联系人/群组/设置 列表 -->
+                <aside class="sidebar" id="sidebar">
+                    <!-- 单聊联系人列表 -->
+                    <div id="chat-panel" class="sidebar-panel active">
+                        <div class="sidebar-header">
+                            <h2>聊天</h2>
+                        </div>
+
+                        <!-- 添加联系人 -->
+                        <div class="group-link-section">
+                            <div class="group-link-label">添加联系人</div>
+                            <div class="group-link-copy-row">
+                                <input id="add-contact-input" class="group-link-input" placeholder="输入用户名...">
+                                <button id="add-contact-btn" class="btn-copy btn-join" title="添加">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="section-label">我的联系人</div>
+                        <ul id="user-list" class="contact-list"></ul>
+                    </div>
+
+                    <!-- 群聊列表 -->
+                    <div id="group-panel" class="sidebar-panel">
+                        <div class="sidebar-header">
+                            <h2>群聊</h2>
+                        </div>
+
+                        <!-- 创建群链接 -->
+                        <div class="group-link-section">
+                            <button id="create-group-link-btn" class="btn-group-action">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                创建群链接
+                            </button>
+                            <!-- 创建成功后展示 -->
+                            <div id="group-link-result" class="group-link-result hidden">
+                                <div class="group-link-label">群链接 ID（分享给好友）</div>
+                                <div class="group-link-copy-row">
+                                    <input id="group-link-value" class="group-link-input" readonly>
+                                    <button id="copy-group-link-btn" class="btn-copy" title="复制">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 加入群链接 -->
+                        <div class="group-link-section">
+                            <div class="group-link-label">加入群（粘贴群链接 ID）</div>
+                            <div class="group-link-copy-row">
+                                <input id="join-group-input" class="group-link-input" placeholder="粘贴群链接 ID...">
+                                <button id="join-group-btn" class="btn-copy btn-join" title="加入">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="section-label">我加入的群</div>
+                        <ul id="group-list" class="contact-list"></ul>
+                    </div>
+
+                    <!-- 设置面板 -->
+                    <div id="settings-panel" class="sidebar-panel">
+                        <div class="sidebar-header">
+                            <h2>设置</h2>
+                        </div>
+                        <div class="settings-list">
+                            <div class="settings-section">
+                                <div class="settings-section-title">个人资料</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">昵称</span>
+                                        <span class="settings-item-value" id="settings-username">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">主题设置</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">主题模式</span>
+                                    </div>
+                                    <select id="theme-select" class="settings-select">
+                                        <option value="auto">自动（跟随时间）</option>
+                                        <option value="light">浅色模式</option>
+                                        <option value="dark">深色模式</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">通知设置</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">消息通知</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="notification-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">通知声音</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="sound-toggle" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">隐私设置</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">默认无痕模式</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="default-incognito-toggle">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">阅后即焚时间</span>
+                                    </div>
+                                    <select id="incognito-timeout" class="settings-select">
+                                        <option value="5">5 秒</option>
+                                        <option value="10" selected>10 秒</option>
+                                        <option value="30">30 秒</option>
+                                        <option value="60">60 秒</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">连接设置</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">P2P 连接超时</span>
+                                        <span class="settings-item-desc">超时后可重新发起连接</span>
+                                    </div>
+                                    <select id="connect-timeout" class="settings-select">
+                                        <option value="10">10 秒</option>
+                                        <option value="15">15 秒</option>
+                                        <option value="30" selected>30 秒</option>
+                                        <option value="60">60 秒</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">数据管理</div>
+                                <div class="settings-item clickable" id="clear-all-data">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">清除所有聊天记录</span>
+                                        <span class="settings-item-desc">删除本地存储的所有消息</span>
+                                    </div>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="settings-arrow">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </div>
+                                <div class="settings-item clickable" id="export-data">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">导出聊天记录</span>
+                                        <span class="settings-item-desc">导出为 JSON 文件</span>
+                                    </div>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="settings-arrow">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <div class="settings-section-title">关于</div>
+                                <div class="settings-item">
+                                    <div class="settings-item-info">
+                                        <span class="settings-item-label">版本</span>
+                                        <span class="settings-item-value">2.0.0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 聊天区域 -->
+                <main class="chat-main">
+                    <!-- 未选择聊天对象 -->
+                    <div id="no-chat" class="no-chat">
+                        <svg class="no-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <p>选择联系人或群组开始聊天</p>
+                    </div>
+
+                    <!-- 聊天内容 -->
+                    <div id="chat-area" class="chat-area hidden">
+                        <div class="chat-header">
+                            <div class="chat-target">
+                                <div class="avatar" id="chat-avatar">U</div>
+                                <div class="chat-target-info">
+                                    <h2 id="chat-target-name">-</h2>
+                                    <div class="status" id="peer-status">
+                                        <span class="status-dot" id="peer-status-dot"></span>
+                                        <span id="peer-status-text">离线</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-header-actions">
+                                <button id="group-members-toggle" class="btn-icon" title="群成员" style="display: none;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                    </svg>
+                                </button>
+                                <button id="clear-chat-btn" class="btn-icon" title="清除聊天记录">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        <line x1="10" y1="11" x2="10" y2="17"/>
+                                        <line x1="14" y1="11" x2="14" y2="17"/>
+                                    </svg>
+                                </button>
+                                <button id="delete-group-btn-header" class="btn-icon btn-danger-icon" title="删除群聊" style="display: none;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                        <line x1="18" y1="8" x2="23" y2="13"/>
+                                        <line x1="23" y1="8" x2="18" y2="13"/>
+                                    </svg>
+                                </button>
+                                <span id="connection-method" class="connection-badge">未连接</span>
+                                <button id="retry-p2p-btn" class="btn-icon" title="重新尝试P2P连接" style="display: none;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"/>
+                                        <polyline points="1 20 1 14 7 14"/>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 请求连接按钮区域 -->
+                        <div id="connect-request-bar" class="connect-request-bar hidden">
+                            <button id="request-connect-btn" class="btn-request-connect">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <polyline points="23 4 23 10 17 10"/>
+                                    <polyline points="1 20 1 14 7 14"/>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"/>
+                                </svg>
+                                请求 P2P 连接
+                            </button>
+                            <span id="connect-request-hint" class="connect-request-hint"></span>
+                        </div>
+                        <div id="messages" class="messages"></div>
+                        <div class="input-bar">
+                            <div class="input-wrapper">
+                                <input type="text" id="message-input" placeholder="输入消息..." autocomplete="off">
+                                <button id="incognito-toggle" class="btn-incognito" title="无痕模式">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                                        <circle cx="9" cy="10" r="1.5" fill="currentColor"/>
+                                        <circle cx="15" cy="10" r="1.5" fill="currentColor"/>
+                                        <path d="M12 16c-2 0-3.5-1.5-3.5-1.5"/>
+                                        <path d="M12 16c2 0 3.5-1.5 3.5-1.5"/>
+                                    </svg>
+                                </button>
+                                <button id="send-btn" class="btn-send">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+
+                <!-- 群成员状态面板（群聊时显示在聊天右侧） -->
+                <div id="group-members-panel" class="group-members-panel hidden">
+                    <div class="group-members-header">
+                        <span>群成员</span>
+                        <button id="group-members-close" class="btn-close">×</button>
+                    </div>
+                    <div class="group-link-id-row">
+                        <span class="group-link-id-label">群链接 ID：</span>
+                        <span id="group-members-link-id" class="group-link-id-value"></span>
+                        <button id="copy-group-id-btn" class="btn-copy-inline" title="复制">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <ul id="group-members-list" class="group-members-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统通知 -->
+    <div id="notifications" class="notifications"></div>
+
+    <!-- 确认对话框 Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-icon warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h3 id="modal-title">清除聊天记录</h3>
+            <p id="modal-message">此操作不可恢复，将清空与 <strong id="modal-target-name"></strong> 的所有本地聊天记录。是否继续？</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn-secondary">取消</button>
+                <button id="modal-confirm" class="btn-danger">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除群聊确认对话框 Modal -->
+    <div id="delete-group-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-icon warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h3 id="delete-group-modal-title">删除群聊</h3>
+            <p id="delete-group-modal-message">此操作不可恢复，将删除群聊 <strong id="delete-group-modal-target-name"></strong>。是否继续？</p>
+            <div class="modal-actions">
+                <button id="delete-group-modal-cancel" class="btn-secondary">取消</button>
+                <button id="delete-group-modal-confirm" class="btn-danger">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=6"></script>
+</body>
+</html>

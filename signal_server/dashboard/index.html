@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Chat 信令服务器仪表板</title>
+    <link rel="stylesheet" href="/dashboard/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航栏 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <h1>P2P Chat 信令服务器</h1>
+                </div>
+                <div class="header-right">
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot connecting"></span>
+                        <span class="status-text">连接中...</span>
+                    </div>
+                    <button id="theme-toggle" class="btn-icon" title="切换主题">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/>
+                            <line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主容器 -->
+        <main class="container">
+            <!-- 服务器状态面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>服务器状态</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label">启动时间</span>
+                            <span class="status-value" id="start-time">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">运行时长</span>
+                            <span class="status-value" id="uptime">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">监听地址</span>
+                            <span class="status-value" id="listen-address">ws://0.0.0.0:5010</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">WebUI 地址</span>
+                            <span class="status-value" id="webui-address">http://localhost:5011/dashboard</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 实时统计面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>实时统计</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="online-users">0</div>
+                            <div class="stat-label">在线用户</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="active-groups">0</div>
+                            <div class="stat-label">活跃群聊</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="pending-offers">0</div>
+                            <div class="stat-label">待处理连接</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="messages-per-second">0.00</div>
+                            <div class="stat-label">消息吞吐 /s</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-messages">0</div>
+                            <div class="stat-label">总消息数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="connection-success-rate">0%</div>
+                            <div class="stat-label">连接成功率</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avg-connection-time">0ms</div>
+                            <div class="stat-label">平均连接时间</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 在线用户面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>在线用户</h2>
+                </div>
+                <div class="panel-content">
+                    <div id="users-list" class="list-container">
+                        <div class="empty-state">暂无在线用户</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 群聊管理面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>群聊管理</h2>
+                </div>
+                <div class="panel-content">
+                    <div id="groups-list" class="list-container">
+                        <div class="empty-state">暂无群聊</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 待处理连接面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>待处理连接</h2>
+                </div>
+                <div class="panel-content">
+                    <div id="pending-offers-list" class="list-container">
+                        <div class="empty-state">暂无待处理连接</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 实时日志面板 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>实时日志</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="log-controls">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter="all">全部</button>
+                            <button class="filter-btn" data-filter="register">注册</button>
+                            <button class="filter-btn" data-filter="offer">连接</button>
+                            <button class="filter-btn" data-filter="error">错误</button>
+                            <button class="filter-btn" data-filter="group">群聊</button>
+                        </div>
+                        <input type="text" id="log-search" class="log-search" placeholder="搜索日志...">
+                    </div>
+                    <div id="logs-container" class="logs-container">
+                        <div class="empty-state">暂无日志</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/dashboard/static/app.js"></script>
+</body>
+</html>
