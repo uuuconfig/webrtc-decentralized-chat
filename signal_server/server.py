@@ -12,11 +12,45 @@ import time
 from datetime import datetime
 from collections import deque
 from pathlib import Path
+
+import yaml
 from websockets.asyncio.server import serve
 from aiohttp import web
 
+
+# ========== 加载配置文件 ==========
+def load_server_config() -> dict:
+    """加载 server_config.yaml，找不到则返回默认值"""
+    config_paths = [
+        Path(__file__).parent.parent / "server_config.yaml",  # 项目根目录
+        Path(__file__).parent / "server_config.yaml",          # signal_server 目录
+    ]
+    for p in config_paths:
+        if p.exists():
+            with open(p, "r", encoding="utf-8") as f:
+                raw = yaml.safe_load(f) or {}
+            return raw.get("signal_server", {})
+    return {}
+
+
+_cfg = load_server_config()
+
+# 从配置文件读取值
+_signal_host = _cfg.get("signal_host", "0.0.0.0")
+_signal_port = _cfg.get("signal_port", 5010)
+_http_host = _cfg.get("http_host", "0.0.0.0")
+_http_port = _cfg.get("http_port", 5011)
+_log_level = _cfg.get("log_level", "INFO")
+_log_format = _cfg.get("log_format", "%(asctime)s [%(levelname)s] %(message)s")
+
+# 统计数据缓冲区配置
+_stats_cfg = _cfg.get("stats", {})
+_connection_times_maxlen = _stats_cfg.get("connection_times_maxlen", 100)
+_message_timestamps_maxlen = _stats_cfg.get("message_timestamps_maxlen", 60)
+_log_buffer_maxlen = _stats_cfg.get("log_buffer_maxlen", 100)
+
 # ========== 日志配置 ==========
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(level=getattr(logging, _log_level, logging.INFO), format=_log_format)
 logger = logging.getLogger("signal")
 
 # ========== 全局数据结构 ==========
@@ -32,8 +66,8 @@ class ServerStats:
         self.total_messages = 0
         self.successful_connections = 0
         self.total_connection_attempts = 0
-        self.connection_times = deque(maxlen=100)
-        self.message_timestamps = deque(maxlen=60)
+        self.connection_times = deque(maxlen=_connection_times_maxlen)
+        self.message_timestamps = deque(maxlen=_message_timestamps_maxlen)
         self.user_connection_times = {}
         self.total_users_ever = 0
         self.offer_start_times = {}
@@ -61,7 +95,7 @@ class ServerStats:
 stats = ServerStats()
 
 # ========== 日志处理器 ==========
-log_buffer = deque(maxlen=100)
+log_buffer = deque(maxlen=_log_buffer_maxlen)
 
 class WebUILogHandler(logging.Handler):
     def emit(self, record):
@@ -525,8 +559,7 @@ async def dashboard_websocket(request):
 
 # ========== 主函数 ==========
 async def main():
-    signal_port = 5010
-    http_port = 5011
+    logger.info(f"配置文件已加载: signal={_signal_host}:{_signal_port}, http={_http_host}:{_http_port}")
     
     # 创建 HTTP 应用
     app = web.Application()
@@ -537,14 +570,14 @@ async def main():
     # 启动 HTTP 服务
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", http_port)
+    site = web.TCPSite(runner, _http_host, _http_port)
     await site.start()
     
-    logger.info(f"WebUI 访问地址: http://localhost:{http_port}/dashboard")
+    logger.info(f"WebUI 访问地址: http://localhost:{_http_port}/dashboard")
     
     # 启动 WebSocket 信令服务
-    async with serve(handler, "0.0.0.0", signal_port):
-        logger.info(f"信令服务器启动在 ws://0.0.0.0:{signal_port}")
+    async with serve(handler, _signal_host, _signal_port):
+        logger.info(f"信令服务器启动在 ws://{_signal_host}:{_signal_port}")
         await asyncio.Future()
 
 if __name__ == "__main__":

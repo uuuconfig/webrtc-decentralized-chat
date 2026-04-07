@@ -15,20 +15,30 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration, R
 
 logger = logging.getLogger("p2p")
 
-STUN_SERVERS = [
-    RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
-    RTCIceServer(urls=["stun:stun1.l.google.com:19302"]),
+DEFAULT_STUN_SERVERS = [
+    "stun:stun.l.google.com:19302",
+    "stun:stun1.l.google.com:19302",
 ]
 
-RTC_CONFIG = RTCConfiguration(iceServers=STUN_SERVERS)
+DEFAULT_ICE_GATHERING_TIMEOUT = 5.0
+
+
+def _build_rtc_config(stun_servers: list[str] | None = None) -> RTCConfiguration:
+    """根据 STUN 服务器列表构建 RTCConfiguration"""
+    servers = stun_servers or DEFAULT_STUN_SERVERS
+    ice_servers = [RTCIceServer(urls=[s]) for s in servers]
+    return RTCConfiguration(iceServers=ice_servers)
 
 
 class PeerConnection:
     """管理与单个对端的 WebRTC 连接"""
 
-    def __init__(self, remote_user: str, on_message=None, on_state_change=None):
+    def __init__(self, remote_user: str, on_message=None, on_state_change=None,
+                 rtc_config: RTCConfiguration | None = None,
+                 ice_gathering_timeout: float = DEFAULT_ICE_GATHERING_TIMEOUT):
         self.remote_user = remote_user
-        self.pc = RTCPeerConnection(configuration=RTC_CONFIG)
+        self.pc = RTCPeerConnection(configuration=rtc_config or _build_rtc_config())
+        self._ice_gathering_timeout = ice_gathering_timeout
         self.channel = None
         self._on_message = on_message
         self._on_state_change = on_state_change
@@ -125,12 +135,12 @@ class PeerConnection:
         answer = RTCSessionDescription(sdp=sdp_data["sdp"], type=sdp_data["type"])
         await self.pc.setRemoteDescription(answer)
 
-    async def _wait_ice_gathering(self, timeout: float = 5.0):
+    async def _wait_ice_gathering(self):
         """等待 ICE 候选收集完成（或超时）"""
         if self.pc.iceGatheringState == "complete":
             return
         try:
-            await asyncio.wait_for(self._ice_complete_event(), timeout)
+            await asyncio.wait_for(self._ice_complete_event(), self._ice_gathering_timeout)
         except asyncio.TimeoutError:
             logger.warning(f"ICE gathering timeout [{self.remote_user}]")
 
@@ -182,10 +192,14 @@ class PeerConnection:
 class P2PManager:
     """管理所有 P2P 连接"""
 
-    def __init__(self):
+    def __init__(self, stun_servers: list[str] | None = None,
+                 ice_gathering_timeout: float = DEFAULT_ICE_GATHERING_TIMEOUT):
         self.connections: dict[str, PeerConnection] = {}
         self._on_message = None
         self._on_state_change = None
+        # 配置参数
+        self._rtc_config = _build_rtc_config(stun_servers)
+        self._ice_gathering_timeout = ice_gathering_timeout
         # 记录正在等待 answer 的 offer（用于检测重复 offer）
         self._pending_offers: dict[str, str] = {}  # remote_user -> conn_id
         # 每个 remote_user 的操作锁，防止 create_offer 和 handle_offer 并发竞争
@@ -206,6 +220,8 @@ class P2PManager:
             remote_user=remote_user,
             on_message=self._on_message,
             on_state_change=self._on_state_change,
+            rtc_config=self._rtc_config,
+            ice_gathering_timeout=self._ice_gathering_timeout,
         )
 
     async def create_offer(self, remote_user: str, force: bool = False) -> dict:

@@ -10,6 +10,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+import yaml
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -20,26 +21,66 @@ from p2p import P2PManager
 from storage import StorageManager
 from fastapi import HTTPException, status
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+# ========== 加载配置文件 ==========
+def load_client_config() -> dict:
+    """加载 client_config.yaml，找不到则返回默认值"""
+    config_paths = [
+        Path(__file__).parent.parent / "client_config.yaml",  # 项目根目录
+        Path(__file__).parent / "client_config.yaml",          # client 目录
+    ]
+    for p in config_paths:
+        if p.exists():
+            with open(p, "r", encoding="utf-8") as f:
+                raw = yaml.safe_load(f) or {}
+            return raw.get("client", {})
+    return {}
+
+
+_cfg = load_client_config()
+
+# 从配置文件读取值，提供合理的默认值
+_default_host = _cfg.get("host", "0.0.0.0")
+_default_port = _cfg.get("port", 8000)
+_default_signal_url = _cfg.get("signal_server", "ws://localhost:5010")
+_default_storage_path = _cfg.get("storage", {}).get("base_path", "data")
+_default_max_username_length = _cfg.get("storage", {}).get("max_username_length", 100)
+_default_log_level = _cfg.get("log_level", "INFO")
+_default_log_format = _cfg.get("log_format", "%(asctime)s [%(levelname)s] %(message)s")
+
+# P2P 相关配置
+_p2p_cfg = _cfg.get("p2p", {})
+_stun_servers = _p2p_cfg.get("stun_servers", None)
+_ice_gathering_timeout = _p2p_cfg.get("ice_gathering_timeout", 5.0)
+_check_user_timeout = _p2p_cfg.get("check_user_timeout", 5.0)
+
+# 应用日志配置
+logging.basicConfig(level=getattr(logging, _default_log_level, logging.INFO),
+                    format=_default_log_format)
 logger = logging.getLogger("client")
 
 app = FastAPI()
 
-# 初始化存储管理器
-storage_manager = StorageManager(base_path="data")
+# 初始化存储管理器（使用配置的路径和用户名长度限制）
+storage_manager = StorageManager(base_path=_default_storage_path)
 
-# 全局状态
+# 全局状态（使用配置值）
 state = {
     "username": None,
     "signal_ws": None,
-    "p2p_manager": P2PManager(),
+    "p2p_manager": P2PManager(
+        stun_servers=_stun_servers,
+        ice_gathering_timeout=_ice_gathering_timeout,
+    ),
     "browser_ws": None,  # 浏览器 WebSocket 连接
-    "signal_url": "ws://localhost:5010",
+    "signal_url": _default_signal_url,
     "user_list": [],     # 缓存在线用户列表
     # 群链接：groupId -> { "members": [username,...], "creator": str }
     "group_peers": {},   # groupId -> set of peer usernames (不含自己)
     "my_groups": {},     # groupId -> { "members": [...], "creator": str }
     "check_user_futures": {},  # target -> asyncio.Future，用于等待 check_user 结果
+    "max_username_length": _default_max_username_length,
+    "check_user_timeout": _check_user_timeout,
 }
 
 static_dir = Path(__file__).parent / "static"
@@ -398,7 +439,7 @@ async def handle_browser_message(data: dict):
             await signal_send({"type": "check_user", "target": target})
 
             try:
-                is_online = await asyncio.wait_for(future, timeout=5.0)
+                is_online = await asyncio.wait_for(future, timeout=state["check_user_timeout"])
             except asyncio.TimeoutError:
                 state["check_user_futures"].pop(target, None)
                 await send_to_browser({
@@ -552,7 +593,7 @@ async def save_data(username: str, data_type: str, request: dict):
     """保存用户数据"""
     try:
         # 验证用户名
-        if not username or len(username) > 100:
+        if not username or len(username) > state["max_username_length"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid username"
@@ -597,7 +638,7 @@ async def get_all_data(username: str):
     """获取用户所有数据"""
     try:
         # 验证用户名
-        if not username or len(username) > 100:
+        if not username or len(username) > state["max_username_length"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid username"
@@ -626,7 +667,7 @@ async def get_data(username: str, data_type: str):
     """获取用户单个数据类型"""
     try:
         # 验证用户名
-        if not username or len(username) > 100:
+        if not username or len(username) > state["max_username_length"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid username"
@@ -661,7 +702,7 @@ async def delete_user_data(username: str):
     """删除用户所有数据"""
     try:
         # 验证用户名
-        if not username or len(username) > 100:
+        if not username or len(username) > state["max_username_length"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid username"
@@ -702,15 +743,20 @@ async def shutdown():
 
 def main():
     parser = argparse.ArgumentParser(description="P2P Chat 客户端")
-    parser.add_argument("--port", type=int, default=8000, help="本地 Web 服务端口")
-    parser.add_argument("--signal", type=str, default="ws://localhost:5010", help="信令服务器地址")
+    parser.add_argument("--port", type=int, default=_default_port,
+                        help=f"本地 Web 服务端口 (配置默认: {_default_port})")
+    parser.add_argument("--signal", type=str, default=_default_signal_url,
+                        help=f"信令服务器地址 (配置默认: {_default_signal_url})")
+    parser.add_argument("--host", type=str, default=_default_host,
+                        help=f"监听地址 (配置默认: {_default_host})")
     args = parser.parse_args()
 
     state["signal_url"] = args.signal
+    logger.info(f"配置文件已加载: host={args.host}, port={args.port}, signal={args.signal}")
     logger.info(f"启动本地服务: http://localhost:{args.port}")
     logger.info(f"信令服务器: {args.signal}")
 
-    uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="info")
+    uvicorn.run(app, host=args.host, port=args.port, log_level=_default_log_level.lower())
 
 
 if __name__ == "__main__":

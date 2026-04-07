@@ -42,3 +42,6 @@ test_data/
 # Environment variables
 .env
 .env.local
+  
+# Client local data  
+client/data/ 
